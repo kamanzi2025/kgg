@@ -123,6 +123,21 @@ class AppProvider extends ChangeNotifier {
   bool isRsvpd(String postId) => PrefsService.isRsvpd(postId);
   bool isSaved(String postId) => PrefsService.isPostSaved(postId);
 
+  // Toggle interested
+  Future<void> toggleInterested(String postId) async {
+    await PrefsService.toggleInterested(postId);
+    final active = PrefsService.isInterested(postId);
+    final idx = _posts.indexWhere((p) => p.id == postId);
+    if (idx != -1) {
+      _posts[idx] = _posts[idx].copyWith(
+        interestedCount: _posts[idx].interestedCount + (active ? 1 : -1),
+      );
+    }
+    notifyListeners();
+  }
+
+  bool isInterested(String postId) => PrefsService.isInterested(postId);
+
   // Toggle community join
   Future<void> toggleJoin(String communityId) async {
     await PrefsService.toggleJoinCommunity(communityId);

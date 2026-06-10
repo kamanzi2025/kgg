@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../constants/app_colors.dart';
 import '../../models/post_model.dart';
 import '../../providers/app_provider.dart';
@@ -27,6 +29,7 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
   DateTime _date = DateTime.now().add(const Duration(days: 7));
   DateTime _deadline = DateTime.now().add(const Duration(days: 3));
   bool _loading = false;
+  File? _coverImage;
 
   static const _categories = ['Events', 'Opportunities', 'Academic', 'Clubs'];
   static const _campuses = ['Kigali', 'Mauritius', 'Remote'];
@@ -38,6 +41,15 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
     'Academic': 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=800',
     'Clubs': 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800',
   };
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 85,
+    );
+    if (picked != null) setState(() => _coverImage = File(picked.path));
+  }
 
   @override
   void dispose() {
@@ -76,6 +88,20 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Deadline must be before the event date
+    if (!_deadline.isBefore(_date)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Registration deadline must be before the event date.'),
+          backgroundColor: AppColors.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
 
     final provider = context.read<AppProvider>();
@@ -93,7 +119,9 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
       location: _locationCtrl.text.trim(),
       date: _date,
       deadline: _deadline,
-      coverImageUrl: _coverImages[_category] ?? _coverImages['Events']!,
+      coverImageUrl: _coverImage != null
+          ? _coverImage!.path
+          : _coverImages[_category] ?? _coverImages['Events']!,
       maxParticipants: int.tryParse(_maxParticipantsCtrl.text) ?? 100,
       isFeatured: false,
     );
@@ -140,6 +168,66 @@ class _PostCreateScreenState extends State<PostCreateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Cover image picker
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 160,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _coverImage != null
+                          ? AppColors.accentGold
+                          : AppColors.borderColor,
+                      width: _coverImage != null ? 2 : 1,
+                    ),
+                    image: _coverImage != null
+                        ? DecorationImage(
+                            image: FileImage(_coverImage!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _coverImage == null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.add_photo_alternate_outlined,
+                                color: AppColors.accentGold, size: 36),
+                            SizedBox(height: 8),
+                            Text(
+                              'Tap to add cover image',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Align(
+                          alignment: Alignment.topRight,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _coverImage = null),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close,
+                                    color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Type toggle
               Container(
                 decoration: BoxDecoration(

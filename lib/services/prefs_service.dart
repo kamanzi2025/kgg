@@ -8,6 +8,7 @@ class PrefsService {
   static const String _keyLoggedIn = 'is_logged_in';
   static const String _keySavedPosts = 'saved_posts';
   static const String _keyRsvpPosts = 'rsvp_posts';
+  static const String _keyInterestedPosts = 'interested_posts';
   static const String _keyJoinedCommunities = 'joined_communities';
 
   static late SharedPreferences _prefs;
@@ -68,6 +69,23 @@ class PrefsService {
   }
 
   static bool isRsvpd(String postId) => getRsvpPosts().contains(postId);
+
+  // Interested posts
+  static List<String> getInterestedPosts() =>
+      _prefs.getStringList(_keyInterestedPosts) ?? [];
+
+  static Future<void> toggleInterested(String postId) async {
+    final list = getInterestedPosts();
+    if (list.contains(postId)) {
+      list.remove(postId);
+    } else {
+      list.add(postId);
+    }
+    await _prefs.setStringList(_keyInterestedPosts, list);
+  }
+
+  static bool isInterested(String postId) =>
+      getInterestedPosts().contains(postId);
 
   // Joined communities
   static List<String> getJoinedCommunities() =>

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -56,14 +57,21 @@ class EventDetailScreen extends StatelessWidget {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: CachedNetworkImage(
-                imageUrl: post.coverImageUrl,
-                fit: BoxFit.cover,
-                placeholder: (_, _) =>
-                    Container(color: AppColors.cardBackgroundLight),
-                errorWidget: (_, _, _) =>
-                    Container(color: AppColors.cardBackgroundLight),
-              ),
+              background: post.coverImageUrl.startsWith('http')
+                  ? CachedNetworkImage(
+                      imageUrl: post.coverImageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) =>
+                          Container(color: AppColors.cardBackgroundLight),
+                      errorWidget: (_, _, _) =>
+                          Container(color: AppColors.cardBackgroundLight),
+                    )
+                  : Image.file(
+                      File(post.coverImageUrl),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          Container(color: AppColors.cardBackgroundLight),
+                    ),
             ),
           ),
 

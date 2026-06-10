@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +35,7 @@ class PostCard extends StatelessWidget {
     final provider = context.watch<AppProvider>();
     final isSaved = provider.isSaved(post.id);
     final isRsvpd = provider.isRsvpd(post.id);
+    final isInterested = provider.isInterested(post.id);
     final catColor = _categoryColor(post.category);
 
     return GestureDetector(
@@ -53,27 +55,7 @@ class PostCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: Stack(
                 children: [
-                  CachedNetworkImage(
-                    imageUrl: post.coverImageUrl,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) => Container(
-                      height: 160,
-                      color: AppColors.cardBackgroundLight,
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.accentGold,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (_, _, _) => Container(
-                      height: 160,
-                      color: AppColors.cardBackgroundLight,
-                      child: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
-                    ),
-                  ),
+                  _CoverImage(url: post.coverImageUrl, height: 160),
                   // Category tag
                   Positioned(
                     top: 12,
@@ -208,10 +190,10 @@ class PostCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       _ActionChip(
-                        label: 'Interested',
+                        label: isInterested ? 'Interested ✓' : 'Interested',
                         count: post.interestedCount,
-                        isActive: false,
-                        onTap: () {},
+                        isActive: isInterested,
+                        onTap: () => provider.toggleInterested(post.id),
                         activeColor: AppColors.successGreen,
                       ),
                       const Spacer(),
@@ -286,6 +268,51 @@ class _ActionChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Renders a local file image or a network image depending on the URL prefix
+class _CoverImage extends StatelessWidget {
+  final String url;
+  final double height;
+  const _CoverImage({required this.url, required this.height});
+
+  bool get _isLocal => !url.startsWith('http');
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      height: height,
+      width: double.infinity,
+      color: AppColors.cardBackgroundLight,
+      child: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
+    );
+
+    if (_isLocal) {
+      return Image.file(
+        File(url),
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: url,
+      height: height,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (_, _) => Container(
+        height: height,
+        color: AppColors.cardBackgroundLight,
+        child: const Center(
+          child: CircularProgressIndicator(
+              color: AppColors.accentGold, strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (_, _, _) => fallback,
     );
   }
 }
